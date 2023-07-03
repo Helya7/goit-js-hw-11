@@ -33,10 +33,15 @@ function getUrl(inputValue, page) {
     return urlAPI + searchParams.toString();
 }
 
-function getAxiosRequest(inputValue, page) {
+async function getAxiosRequest(inputValue, page) {
+  try {
     const url = getUrl(inputValue, page);
-   
-    return axios.get(url).then(response => response).catch(error => Notiflix.Notify.failure(error))
+    const response = await axios.get(url);
+    return response;
+  } catch (error) {
+    Notiflix.Notify.failure(error);
+    throw error;
+  }
 }
 
 function makeMarkup(responseData) {
