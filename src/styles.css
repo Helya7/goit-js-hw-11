@@ -4,7 +4,7 @@ body {
     font-style: normal;
     font-weight: 400px;
     color: #111111;
-    background-color: #c2dcf9;
+    background-color: #d5afef;
     position: relative;
     margin: 0 auto;
     
@@ -19,7 +19,7 @@ form {
     justify-content: center;
     gap: 30px;
     width: 100%;
-    background-color:#6a88b5;
+    background-color:#b47bd9;
     position: fixed;
     padding-top: 10px;
     padding-bottom: 10px;
@@ -45,7 +45,7 @@ button {
     border-radius: 10px;
     border-color: transparent;
     color: #ffffff;
-    background-color:  #97c5f4fa;
+    background-color:#d5afef;
     transition: box-shadow 0.3s ease, background-color 0.3s;
     cursor: pointer;
 }
@@ -69,10 +69,10 @@ button {
     flex-direction: column;
     justify-content: space-between;
     background-color: #fff;
-    box-shadow: 0 0 2px 2px #bed9f5;
     width: 350px;
     height: 300px;
     border-radius: 5px;
+    box-shadow: 0px 0px 10px #808080;
 }
 
 .image {
@@ -106,5 +106,4 @@ button {
     align-items: center;
     padding: 3px;
     border-radius: 5px;
-    background-color: #bed9f5;
 }
