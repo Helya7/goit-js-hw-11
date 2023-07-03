@@ -3,7 +3,7 @@ import Notiflix from 'notiflix';
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
 
-const pixabayKey = '37695850-4d249e88305a79ea73cd9b048';
+const pixabayKey = '37256788-f288b03284a6e1a054b03f9e6';
 
 const formEl = document.querySelector('form');
 const inputEl = document.querySelector('input'); 
