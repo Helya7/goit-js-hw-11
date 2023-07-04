@@ -1,163 +1,115 @@
-import axios from 'axios';
+import './css/style.css';
 import Notiflix from 'notiflix';
-import SimpleLightbox from "simplelightbox";
+import SimpleLightbox from 'simplelightbox';
 import "simplelightbox/dist/simple-lightbox.min.css";
+import createMarkup from './script/list-photos-markup';
+import smoothScroll from './script/smooth-scroll';
 
-const pixabayKey = '37256788-f288b03284a6e1a054b03f9e6';
+// variables
 
-const formEl = document.querySelector('form');
-const inputEl = document.querySelector('input'); 
-const galleryEl = document.querySelector('.gallery');
-let page = 1;
-let searchQuery = '';
-let perPage;
-let totalValues;
-let inputValue = '';
+const axios = require('axios').default;
 
-let lightbox; 
+const API_KEY = `36868675-d04d7da5b1942ea7b304f9f1a`;
+const BASE_URL = `https://pixabay.com/api/`;
 
-function getUrl(inputValue, page) {
-    perPage = 40;
-    const urlAPI = 'https://pixabay.com/api/?';
-    const searchParams = new URLSearchParams({
-        key: pixabayKey,
-        q: inputValue,
-        image_type: 'photo',
-        orientation: 'horizontal',
-        maxHeight: 300,
-        safesearch: true,
-        per_page: perPage,
-        page: page,
-    });
+const formEl = document.querySelector('.search-form');
+const listEL = document.querySelector('.search-list-js');
+const inputEl = document.querySelector('input[name="searchQuery"]');
+const target = document.querySelector('.js-guard');
 
-    return urlAPI + searchParams.toString();
+let perPage = 40;
+let gallerySlider;
+
+let options = {
+  root: null,
+  rootMargin: '200px',
+  threshold: 1.0
+};
+
+let observer = new IntersectionObserver(onLoad, options);
+let currentPage = 1;
+
+// Functions
+
+formEl.addEventListener('submit', onClickSubmit);
+
+async function onClickSubmit(event) {
+  event.preventDefault();
+  currentPage = 1;
+  await getImages(1, 40);
 }
 
-async function getAxiosRequest(inputValue, page) {
+async function getFetch(page, perPage) {
   try {
-    const url = getUrl(inputValue, page);
-    const response = await axios.get(url);
+    const params = new URLSearchParams({
+      image_type: 'photo',
+      orientation: 'horizontal',
+      safesearch: true,
+      per_page: perPage,
+      page,
+    });
+    const searchResponse = inputEl.value.trim();
+    const response = await axios.get(`${BASE_URL}?key=${API_KEY}&q=${searchResponse}&${params}`);
     return response;
   } catch (error) {
-    Notiflix.Notify.failure(error);
+    console.error(error);
     throw error;
   }
 }
 
-function makeMarkup(responseData) {
-  let galleryItems = responseData.data.hits.map(item => {
-    let galleryItem = document.createElement('div');
-    galleryItem.className = 'photo-card';
-    galleryItem.innerHTML = `
-      <a class="gallery_link" href="${item.largeImageURL}">
-        <img class="image" src="${item.webformatURL}" alt="${item.tags}" loading="lazy"/>
-      </a>
-      <div class="info">
-        <p class="info-item">
-          ${item.likes}<br>
-          <b class="info-item-name">Likes</b>
-        </p>
-        <p class="info-item">
-          ${item.views}<br>
-          <b class="info-item-name">Views</b>
-        </p>
-        <p class="info-item">
-          ${item.comments}<br>
-          <b class="info-item-name">Comments</b>
-        </p>
-        <p class="info-item">
-          ${item.downloads}<br>
-          <b class="info-item-name">Downloads</b>
-        </p>
-      </div>
-    `;
-    return galleryItem;
-  });
-
-  galleryItems.forEach(item => {
-    galleryEl.appendChild(item);
-  });
-  
-  lightbox.refresh();
-
-  const { height: cardHeight } = document
-    .querySelector(".gallery")
-    .firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: "smooth",
-  });
-
-  window.scrollTo(0, 0);
-}
-
-async function onFormSubmit(event) {
-    event.preventDefault();
-
-    inputValue = inputEl.value;
-    searchQuery = inputValue;
-    page = 1;
-    let responseData;
-    
-    if (inputValue.length === 0) {
-        Notiflix.Notify.warning('Please, enter your request!')
-    } else {
-        try {
-            responseData = await getAxiosRequest(inputValue, page);
-            if (responseData.data.total === 0) {
-                throw new Error('Sorry, there are no images matching your search query. Please try again.');
-            } else {
-              galleryEl.innerHTML = '';
-              makeMarkup(responseData);
-              inputEl.value = '';
-              Notiflix.Notify.success(`Hooray! We found ${responseData.data.totalHits} images.`)
-            }
-        } catch (error) {
-            Notiflix.Notify.failure(error.message);
-        }
-    }
-};
-
-formEl.addEventListener('submit', onFormSubmit);
-
-let isLoading = false;
-let throttleTimeout;
-let currentScrollTop = 0;
-let previousScrollTop = 0;
-
-async function loadMoreImages() {
-  if (isLoading || page * perPage >= totalValues) {
-    return;
+async function getImages(page, perPage) {
+  if (inputEl.value.trim() === '') {
+    return Notiflix.Notify.failure(`Request cannot be empty`);
   }
-  isLoading = true;
-  page++;
-  previousScrollTop = window.pageYOffset;
+
   try {
-    let responseData = await getAxiosRequest(searchQuery, page);
-    makeMarkup(responseData);
-    totalValues = responseData.data.totalHits;
+    const response = await getFetch(page, perPage);
+
+    if (response.data.hits.length === 0) {
+      Notiflix.Notify.failure(`Oooops! No images found for query <i>'${inputEl.value}</i>'`);
+      listEL.innerHTML = `<p>Oooops! No images found for query <i>'${inputEl.value}</i>'. Try again!</p>`;
+      return;
+    }
+
+    Notiflix.Notify.success(`Hooray! We found ${response.data.totalHits} images`);
+
+    console.log(response.data);
+
+    listEL.innerHTML = createMarkup(response.data.hits);
+
+    observer.observe(target);
+
+    gallerySlider = new SimpleLightbox('.gallery a', { captionsData: 'alt', captionDelay: 950, navText: ['❮', '❯'] });
+
   } catch (error) {
-    Notiflix.Notify.failure(error.message);
-  } finally {
-    isLoading = false;
-    window.scrollTo(0, previousScrollTop);
+    console.error(error);
   }
 }
 
-function onWindowScroll() {
-  clearTimeout(throttleTimeout);
-  throttleTimeout = setTimeout(function () {
-    const documentRect = document.documentElement.getBoundingClientRect();
-    if (documentRect.bottom < document.documentElement.clientHeight + 150 && window.pageYOffset > currentScrollTop) {
-      loadMoreImages();
+function onLoad(entries, observer) {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      console.log(entries);
+      currentPage += 1;
+      getFetch(currentPage, perPage)
+        .then(response => {
+          console.log();
+          listEL.insertAdjacentHTML('beforeend', createMarkup(response.data.hits));
+          gallerySlider.refresh();
+          if (currentPage * perPage >= response.data.totalHits && currentPage !== 2) {
+            setTimeout(() => {
+              Notiflix.Notify.info(`We're sorry, but you've reached the end of search results`);
+            }, 2000);
+            observer.unobserve(target);
+            return;
+          }
+
+          observer.observe(target);
+
+          smoothScroll();
+
+        })
+        .catch(error => console.error(error));
     }
-    currentScrollTop = window.pageYOffset;
-  }, 200);
+  });
 }
-
-window.addEventListener('scroll', onWindowScroll);
-
-document.addEventListener('DOMContentLoaded', function() {
-  lightbox = new SimpleLightbox('.photo-card a');
-});
